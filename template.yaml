@@ -1,0 +1,575 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Triathlon Trainer Service
+
+  '
+Parameters:
+  CognitoDomain:
+    Type: String
+    Description: A name for the cognito Domain
+    Default: change-this-music-playlist-service-change-this
+  S3Bucket:
+    Default: ''
+    Type: String
+    Description: Parameter to specify the S3 Bucket to use for deployment
+  FrontendDeployment:
+    Default: remote
+    Type: String
+    AllowedValues:
+    - local
+    - remote
+    ConstraintDescription: Must specify 'local' or 'remote' for FrontendDeployment.
+Conditions:
+  DeployCloudFront:
+    Fn::Equals:
+    - Ref: FrontendDeployment
+    - remote
+Globals:
+  Function:
+    Timeout: 20
+  Api:
+    Cors:
+      AllowMethods: '''GET,POST,PUT,DELETE,OPTIONS'''
+      AllowHeaders: '''content-type,authorization'''
+      AllowOrigin: '''*'''
+    Auth:
+      DefaultAuthorizer: CognitoAuthorizer
+      AddDefaultAuthorizerToCorsPreflight: false
+      Authorizers:
+        CognitoAuthorizer:
+          UserPoolArn:
+            Fn::GetAtt:
+            - UserPool
+            - Arn
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+        - Name: verified_email
+          Priority: 1
+      UsernameAttributes:
+      - email
+      UsernameConfiguration:
+        CaseSensitive: false
+      AutoVerifiedAttributes:
+      - email
+      UserPoolName:
+        Fn::Sub: ${CognitoDomain}-user-pool
+      Schema:
+      - Name: email
+        AttributeDataType: String
+        Mutable: false
+        Required: true
+      - Name: name
+        AttributeDataType: String
+        Mutable: true
+        Required: true
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId:
+        Ref: UserPool
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+      - http://localhost:8000
+      - Fn::If:
+        - DeployCloudFront
+        - Fn::Sub: https://${CloudfrontDistribution.DomainName}
+        - Ref: AWS::NoValue
+      LogoutURLs:
+      - http://localhost:8000
+      - Fn::If:
+        - DeployCloudFront
+        - Fn::Sub: https://${CloudfrontDistribution.DomainName}
+        - Ref: AWS::NoValue
+      AllowedOAuthFlows:
+      - code
+      - implicit
+      AllowedOAuthScopes:
+      - phone
+      - email
+      - openid
+      - profile
+      SupportedIdentityProviders:
+      - COGNITO
+      PreventUserExistenceErrors: ENABLED
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain:
+        Ref: CognitoDomain
+      UserPoolId:
+        Ref: UserPool
+  CloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Condition: DeployCloudFront
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: Serverless frontend website
+  CloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Condition: DeployCloudFront
+    Properties:
+      DistributionConfig:
+        Comment: Cloudfront distribution for serverless website
+        DefaultRootObject: index.html
+        Enabled: true
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        Origins:
+        - Id: s3-website
+          DomainName:
+            Fn::Sub: ${S3Bucket}.s3.us-east-2.amazonaws.com
+          OriginPath: /static
+          S3OriginConfig:
+            OriginAccessIdentity:
+              Fn::Sub: origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}
+        DefaultCacheBehavior:
+          Compress: 'true'
+          AllowedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          ForwardedValues:
+            QueryString: false
+          TargetOriginId: s3-website
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: DeployCloudFront
+    Properties:
+      Bucket:
+        Ref: S3Bucket
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action: s3:GetObject
+          Resource:
+          - Fn::Sub: arn:aws:s3:::${S3Bucket}/*
+          Principal:
+            AWS:
+              Fn::Sub: arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity
+                ${CloudFrontOriginAccessIdentity}
+  AccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      - arn:aws:iam::aws:policy/AWSLambdaExecute
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - PolicyName: WriteToCloudWatch
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - cloudwatch:PutMetricData
+            Resource: '*'
+      - PolicyName: AccessPlaylistsTable
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: dynamodb:*
+            Resource:
+              Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/playlists
+      - PolicyName: AccessAlbumTracksTable
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: dynamodb:*
+            Resource:
+              Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/album_tracks
+      - PolicyName: AccessTriathlonTable
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: dynamodb:*
+            Resource:
+              Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/triathlon_table
+      - PolicyName: AccessTriathlonTableCustomerIdDateRangeIndex
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: dynamodb:*
+            Resource:
+              Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/triathlon_table/index/CustomerIdDateRangeIndex
+  CreateWorkoutLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role:
+        Fn::GetAtt:
+        - AccessRole
+        - Arn
+      CodeUri: CreateWorkoutLambda
+      Handler: com.nashss.se.musicplaylistservice.lambda.CreateWorkoutLambda::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      Events:
+        MusicPlaylistService:
+          Type: Api
+          Properties:
+            Path: /workouts
+            Method: post
+    Metadata:
+      SamResourceId: CreateWorkoutLambda
+  GetFullWorkoutHistoryByCustomerLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role:
+        Fn::GetAtt:
+        - AccessRole
+        - Arn
+      CodeUri: GetFullWorkoutHistoryByCustomerLambda
+      Handler: com.nashss.se.musicplaylistservice.lambda.GetFullWorkoutHistoryByCustomerLambda::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      Events:
+        MusicPlaylistService:
+          Type: Api
+          Properties:
+            Path: /workouts/customers/{customerId}
+            Method: get
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      SamResourceId: GetFullWorkoutHistoryByCustomerLambda
+  DeleteWorkoutLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role:
+        Fn::GetAtt:
+        - AccessRole
+        - Arn
+      CodeUri: DeleteWorkoutLambda
+      Handler: com.nashss.se.musicplaylistservice.lambda.DeleteWorkoutLambda::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      Events:
+        MusicPlaylistService:
+          Type: Api
+          Properties:
+            Path: /workouts/{workoutId}
+            Method: delete
+    Metadata:
+      SamResourceId: DeleteWorkoutLambda
+  GetPlaylistLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role:
+        Fn::GetAtt:
+        - AccessRole
+        - Arn
+      CodeUri: GetPlaylistLambda
+      Handler: com.nashss.se.musicplaylistservice.lambda.GetPlaylistLambda::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      Events:
+        MusicPlaylistService:
+          Type: Api
+          Properties:
+            Path: /playlists/{id}
+            Method: get
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      SamResourceId: GetPlaylistLambda
+  SearchPlaylistsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role:
+        Fn::GetAtt:
+        - AccessRole
+        - Arn
+      CodeUri: SearchPlaylistsLambda
+      Handler: com.nashss.se.musicplaylistservice.lambda.SearchPlaylistsLambda::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      Events:
+        MusicPlaylistService:
+          Type: Api
+          Properties:
+            Path: /playlists/search
+            Method: get
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      SamResourceId: SearchPlaylistsLambda
+  GetPlaylistSongsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role:
+        Fn::GetAtt:
+        - AccessRole
+        - Arn
+      CodeUri: GetPlaylistSongsLambda
+      Handler: com.nashss.se.musicplaylistservice.lambda.GetPlaylistSongsLambda::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      Events:
+        MusicPlaylistService:
+          Type: Api
+          Properties:
+            Path: /playlists/{id}/songs
+            Method: get
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      SamResourceId: GetPlaylistSongsLambda
+  CreatePlaylistLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role:
+        Fn::GetAtt:
+        - AccessRole
+        - Arn
+      CodeUri: CreatePlaylistLambda
+      Handler: com.nashss.se.musicplaylistservice.lambda.CreatePlaylistLambda::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      Events:
+        MusicPlaylistService:
+          Type: Api
+          Properties:
+            Path: /playlists
+            Method: post
+    Metadata:
+      SamResourceId: CreatePlaylistLambda
+  GetWorkoutLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role:
+        Fn::GetAtt:
+        - AccessRole
+        - Arn
+      CodeUri: GetWorkoutLambda
+      Handler: com.nashss.se.musicplaylistservice.lambda.GetWorkoutLambda::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      Events:
+        MusicPlaylistService:
+          Type: Api
+          Properties:
+            Path: /workouts/customers/{customerId}/recent/
+            Method: get
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      SamResourceId: GetWorkoutLambda
+  GetTypeWorkoutsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role:
+        Fn::GetAtt:
+        - AccessRole
+        - Arn
+      CodeUri: GetTypeWorkoutsLambda
+      Handler: com.nashss.se.musicplaylistservice.lambda.GetTypeWorkoutsLambda::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      Events:
+        MusicPlaylistService:
+          Type: Api
+          Properties:
+            Path: /workouts/type/{customerId}/recent/
+            Method: get
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      SamResourceId: GetTypeWorkoutsLambda
+  UpdatePlaylistLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role:
+        Fn::GetAtt:
+        - AccessRole
+        - Arn
+      CodeUri: UpdatePlaylistLambda
+      Handler: com.nashss.se.musicplaylistservice.lambda.UpdatePlaylistLambda::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      Events:
+        MusicPlaylistService:
+          Type: Api
+          Properties:
+            Path: /playlists/{id}
+            Method: put
+    Metadata:
+      SamResourceId: UpdatePlaylistLambda
+  AddSongToPlaylistLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role:
+        Fn::GetAtt:
+        - AccessRole
+        - Arn
+      CodeUri: AddSongToPlaylistLambda
+      Handler: com.nashss.se.musicplaylistservice.lambda.AddSongToPlaylistLambda::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      Events:
+        MusicPlaylistService:
+          Type: Api
+          Properties:
+            Path: /playlists/{id}/songs
+            Method: post
+    Metadata:
+      SamResourceId: AddSongToPlaylistLambda
+  TriathlonTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: workoutId
+        AttributeType: S
+      - AttributeName: customerId
+        AttributeType: S
+      - AttributeName: date
+        AttributeType: S
+      - AttributeName: workoutType
+        AttributeType: S
+      KeySchema:
+      - AttributeName: workoutId
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TableName: triathlon_table
+      GlobalSecondaryIndexes:
+      - IndexName: CustomerIdDateRangeIndex
+        KeySchema:
+        - AttributeName: customerId
+          KeyType: HASH
+        - AttributeName: date
+          KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
+      - IndexName: WorkoutTypeIndex
+        KeySchema:
+        - AttributeName: workoutType
+          KeyType: HASH
+        Projection:
+          ProjectionType: ALL
+  PlaylistsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TableName: playlists
+  AlbumTracksTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: asin
+        AttributeType: S
+      - AttributeName: track_number
+        AttributeType: N
+      KeySchema:
+      - AttributeName: asin
+        KeyType: HASH
+      - AttributeName: track_number
+        KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      TableName: album_tracks
+Outputs:
+  CognitoUserPoolId:
+    Value:
+      Ref: UserPool
+    Description: The Cognito User Pool ID (COGNITO_USER_POOL_ID).
+  CognitoUserPoolClientId:
+    Value:
+      Ref: UserPoolClient
+    Description: The Cognito User Pool Client ID (COGNITO_USER_POOL_CLIENT_ID).
+  CognitoDomain:
+    Value:
+      Fn::Sub: ${CognitoDomain}.auth.us-east-2.amazoncognito.com
+    Description: The Cognito Domain (COGNITO_DOMAIN).
+  ApiBaseUrl:
+    Description: API Gateway endpoint base URL for Prod stage (API_BASE_URL).
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
+  CognitoRedirectSignin:
+    Description: The URL of the deployed front-end application (COGNITO_REDIRECT_SIGNIN).
+    Value:
+      Fn::Sub: https://${CloudfrontDistribution.DomainName}
+    Condition: DeployCloudFront
+  CognitoRedirectSignout:
+    Description: The URL of the deployed front-end application (COGNITO_REDIRECT_SIGNOUT).
+    Value:
+      Fn::Sub: https://${CloudfrontDistribution.DomainName}
+    Condition: DeployCloudFront
