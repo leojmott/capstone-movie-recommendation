@@ -1,0 +1,13 @@
+@startuml
+actor Client
+participant "Movie Recommender\nWeb Page" as WebPage
+participant "SearchMovie\nActivity" as Endpoint
+database "DynamoDB\nDatabase" as Database
+
+Client -> WebPage: Fill in searchMovie movie form and submit
+WebPage -> Endpoint: GET request with movie data
+Endpoint -> Database: query movie data
+Database -> Endpoint: list of movies
+Endpoint -> WebPage: load movie data into table
+WebPage -> Client: Display query results
+@enduml
