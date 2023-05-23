@@ -104,7 +104,7 @@ username // string
 password // string
 email // string
 preferences // map (probably key value pair (movie ids, rating))
-watchlist // list
+watchlist // movies list
 organizedRatings // map (movie ids, rating)
 
 ```
