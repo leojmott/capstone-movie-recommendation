@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Record Triathlon Workout</title>
+    <script type="text/javascript" src="assets/createWorkout.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+
+<body class="background">
+    <header class="header" id="header"></header>
+    <div class="card">
+        <h2>Record Triathlon Workout</h2>
+        <form class="card-content" id="create-workout-form">
+            <p class="hidden error" id="error-message"> </p>
+            <p class="hidden success" id="success-message">Workout successfully recorded</p>
+            <p class="form-field">
+                <label for="workoutType">Workout Type</label>
+                <select type=name="workout-type" id="workoutType" required>
+                <option value="">Select a Workout Type</option>
+                <option value="RUNNING">Running</option>
+                <option value="BIKING">Biking</option>
+                <option value="SWIMMING">Swimming</option>
+                </select>
+            </p>
+            <p class="form-field">
+                <label>Date Completed</label>
+                <input type="date" name="date" id="date" placeholder="YYYY-MM-DD" required>
+            </p>
+            <p class="form-field">
+                <label>Workout Duration</label>
+                <div class="workout-time-container">
+                    <div class="workout-time-item">
+                        <label for="hours">Hours:</label>
+                        <input type="text" id="hours" name="hours" value="0">
+                    </div>
+                    <div class="workout-time-item">
+                        <label for="minutes">Minutes:</label>
+                        <input type="text" id="minutes" name="minutes" value="0">
+                    </div>
+                    <div class="workout-time-item">
+                        <label for="seconds">Seconds:</label>
+                        <input type="text" id="seconds" name="seconds" value="0">
+                    </div>
+                </div>
+            </p>
+            <p class="form-field">
+                <div class="workout-time-container">
+                    <div class="distance-time-item">
+                        <label for="distance">Distance(km)</label>
+                        <input type="text" name="distance" id="distance" value="0">
+                    </div>
+                </div>
+            </p>
+            <p class="button-group">
+                <a href="#" class="button" id="create">Record Workout</a>
+                <a href="getWorkoutHistory.html" class="button">Workout History</a>
+            </p>
+            </p>
+        </form>
+    </div>
+</body>
+
+</html>

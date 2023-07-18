@@ -1,0 +1,70 @@
+{
+  "MoviesTable": [
+    {
+      "PutRequest": {
+        "Item": {
+          "id": {
+            "N": "862"
+          },
+          "title": {
+            "S": "Toy Story"
+          },
+          "genre": {
+            "S": "Animation"
+          },
+          "director": {
+            "S": "John Lasseter"
+          },
+          "releaseYear": {
+            "S": "1995-10-30"
+          },
+          "rating": {
+            "N": "7.7"
+          },
+          "cast": {
+            "SS": "Tom Hanks, Tim Allen, Don Rickles"
+          },
+          "trailerUrl": {
+            "S": ""
+          },
+          "posterImage": {
+            "S": "/rhIRbceoE9lR4veEXuwCC2wARtG.jpg"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "id": {
+            "N": "8844"
+          },
+          "title": {
+            "S": "Jumanji"
+          },
+          "genre": {
+            "S": "Adventure"
+          },
+          "director": {
+            "S": "Joe Johnston"
+          },
+          "releaseYear": {
+            "S": "1995-12-15"
+          },
+          "rating": {
+            "N": "6.9"
+          },
+          "cast": {
+            "SS": "Robin Williams, Kristen Dunst, Jim Strain"
+          },
+          "trailerUrl": {
+            "S": ""
+          },
+          "posterImage": {
+            "S": "/vzmL6fP7aPKNKPRTFnZmiUfciyV.jpg"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -24,9 +24,9 @@ class GetWorkoutHub extends BindingClass {
     mount() {
         this.header.addHeaderToPage();
 
-        this.client = new WorkoutClient();
+       // this.client = new WorkoutClient();
 
-        this.clientLoaded();
+      //0  this.clientLoaded();
 
     }
     async workoutTypeChart() {

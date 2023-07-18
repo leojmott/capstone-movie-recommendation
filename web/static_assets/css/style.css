@@ -1,0 +1,231 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap');
+
+:root {
+    /* css variables: https://developer.mozilla.org/en-US/docs/Web/CSS/var */
+    --primary-color: #2A3E4E;
+    --secondary-color: #ffffff;
+    --tertiary-color: #3E91F7;
+    --error-color: #EE3A23;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+#success-message {
+    font-size: 24px;
+    font-weight: bold;
+    color: forestgreen;
+}
+.background {
+    background-color: #E9F1F7;
+    margin: 0;
+    counter-reset: section;
+    font-family: "Roboto", sans-serif;
+}
+
+.header {
+    /* Flexbox: https://css-tricks.com/snippets/css/a-guide-to-flexbox/ */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    padding: 4px 20px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+
+
+.button {
+    background-color: var(--tertiary-color);
+    border: none;
+    color: var(--secondary-color);
+    padding: 6px 8px 4px 8px;
+    text-align: center;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.button:hover {
+    background-color: #2D7CDD;
+}
+
+.button-group {
+    display: flex;
+    justify-content: space-between;
+}
+
+.header_home {
+    font-size: 36px;
+    line-height: 40px;
+    height: 100px;
+    text-decoration: none;
+    color: var(--secondary-color);
+}
+
+.card {
+    color: var(--primary-color);
+    background-color: var(--secondary-color);
+    margin: 20px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.error {
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.validated-field:invalid {
+    outline: 2px solid var(--error-color);
+}
+.validated-field:focus:invalid {
+    color: var(--error-color);
+}
+
+.card-content {
+    max-width: 500px;
+}
+
+.card-content .form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.tags {
+    display: flex;
+    flex-direction: row;
+}
+
+.tag {
+    font-size: 12px;
+    margin: 0 10px;
+    padding: 4px 8px;
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    position: relative;
+    border-radius: 16px;
+}
+
+.song {
+    padding: 2px;
+    display: flex;
+}
+
+.song .title {
+    flex: 20%;
+}
+
+.song .album {
+    flex: 80%;
+}
+
+/*
+Flexbox on a lists removes the numbers. We use a counter here to add them back.
+https://stackoverflow.com/a/34316093
+https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Lists_and_Counters/Using_CSS_counters
+*/
+.song:before {
+    counter-increment: section;
+    content: counter(section) ".";
+    position: absolute;
+    margin-left: -40px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* table styles */ 
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #d4e0e6;
+    font-weight: bold;
+    border-bottom: 1px solid var(--primary-color);
+}
+
+a {
+    color: var(--tertiary-color);
+    text-decoration: none;
+}
+
+/* Form inputs */
+input[type="text"], input[type="date"], select {
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    outline: none;
+    background-color: #F0F3F7;
+}
+
+select, input[type="date"] {
+    width: 300px;
+    box-sizing: border-box;
+}
+
+input[type="text"] {
+    width: 60px;
+}
+
+input[type="text"]:focus, input[type="date"]:focus, select:focus {
+    border-color: var(--tertiary-color);
+}
+
+label {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+
+.workout-time-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.workout-time-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+
+}
+
+.workout-time-item label {
+    display: inline-block;
+    width: 80px;
+    text-align: left;
+    margin-right: 4px;
+}
+
+.distance-time-item label {
+    display: inline-block;
+    width: 80px;
+    text-align: left;
+    margin-right: 18px;
+}
+
+.distance-time-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.form-field {
+    margin-bottom: 8px;
+}
+
