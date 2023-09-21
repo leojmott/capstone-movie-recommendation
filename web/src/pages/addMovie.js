@@ -6,7 +6,7 @@ import DataStore from '../util/DataStore';
 /**
  * Logic needed for the create playlist page of the website.
  */
-class CreateWorkout extends BindingClass {
+class AddMovie extends BindingClass {
     constructor() {
         super();
         this.bindClassMethods(['mount', 'submit'], this);
@@ -46,6 +46,7 @@ class CreateWorkout extends BindingClass {
         createButton.innerText = 'Loading...';
 
         //Data Fields for JSON collected from form
+        //const id = document.getElementById('id').value;
         const title = document.getElementById('title').value;
         const genre = document.getElementById('genre').value;
         const director = document.getElementById('director').value;
@@ -55,8 +56,11 @@ class CreateWorkout extends BindingClass {
         const posterImage = document.getElementById('posterImage').value;
 
         try {
+             console.log("title, genre, director, releaseYear, rating, trailerUrl, posterImage", title, genre, director, releaseYear, rating, trailerUrl, posterImage);
+            console.log("this client", this.client);
+            console.log("add movie", this.client.addMovie);
             const movie = await this.client.addMovie(title, genre, director, releaseYear, rating, trailerUrl, posterImage);
-
+            console.log("movie client loaded");
             this.dataStore.set('movie', movie);
             successMessageDisplay.innerText = `Movie added successfully`;
             successMessageDisplay.classList.remove('hidden');
@@ -81,7 +85,7 @@ class CreateWorkout extends BindingClass {
  * Main method to run when the page contents have loaded.
  */
 const main = async () => {
-    const addMovie = new addMovie();
+    const addMovie = new AddMovie();
     addMovie.mount();
 };
 

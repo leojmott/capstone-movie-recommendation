@@ -13,7 +13,7 @@ public class GetMovieRequest {
 
     @Override
     public String toString() {
-        return "GetWorkoutRequest{" +
+        return "GetMovieRequest{" +
                 "id='" + id + '\'' +
                 '}';
     }

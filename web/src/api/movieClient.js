@@ -2,7 +2,7 @@ import axios from "axios";
 import BindingClass from "../util/bindingClass";
 import Authenticator from "./authenticator";
 
-export default class WorkoutClient extends BindingClass {
+export default class MovieClient extends BindingClass {
 
     constructor(props = {}) {
         super();
@@ -68,7 +68,7 @@ export default class WorkoutClient extends BindingClass {
         try {
             const token = await this.getTokenOrThrow("please login");
             const response = await this.axiosClient.get(`getmovies`);
-            return response.data;
+            return response.data.movieModel;
         } catch (error) {
             this.handleError(error, errorCallback)
         }
@@ -76,7 +76,7 @@ export default class WorkoutClient extends BindingClass {
 
     async deleteMovie(id, errorCallback) {
         try {
-            const token = await this.getTokenOrThrow("Must be logged in to delete a workout");
+            const token = await this.getTokenOrThrow("Must be logged in to delete a movie");
             const response = await this.axiosClient.delete(`deletemovie/${id}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -90,28 +90,27 @@ export default class WorkoutClient extends BindingClass {
     }
 
     async addMovie(title, genre, director, releaseYear, rating, trailerUrl, posterImage) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const token = await this.getTokenOrThrow("Only authenticated users can create a workout.");
-                const response = await this.axiosClient.post(`workouts`, {
+
+
+                const token = await this.getTokenOrThrow("Only authenticated users can add a movie.");
+                console.log("token", token);
+                const response = await this.axiosClient.post(`addmovie`, {
                     title: title,
                     genre: genre,
                     director: director,
                     releaseYear: releaseYear,
                     rating: rating,
                     trailerUrl: trailerUrl,
-                    posterImage, posterImage
+                    posterImage: posterImage
                 }, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                resolve(response.data.workout); // Resolve with the workout data on success
-            } catch (error) {
-                reject(error); // Reject with the error on failure
-            }
-        });
-    }
+
+
+      }
+
 
     async sevenDayWorkout  (customerId, numberOfDays, errorCallback) {
             try {
@@ -131,4 +130,17 @@ export default class WorkoutClient extends BindingClass {
                          this.handleError(error, errorCallback)
                       }
                }
+      handleError(error, errorCallback) {
+                       console.error(error);
+
+                       const errorFromApi = error?.response?.data?.error_message;
+                       if (errorFromApi) {
+                           console.error(errorFromApi)
+                           error.message = errorFromApi;
+                       }
+
+                       if (errorCallback) {
+                           errorCallback(error);
+                       }
+                   }
     }

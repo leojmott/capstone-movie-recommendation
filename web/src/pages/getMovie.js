@@ -1,4 +1,4 @@
-import WorkoutClient from '../api/movieClient';
+import MovieClient from '../api/movieClient';
 import Header from '../components/header';
 import BindingClass from "../util/bindingClass";
 import DataStore from "../util/DataStore";
@@ -9,8 +9,9 @@ import DataStore from "../util/DataStore";
 class GetMovie extends BindingClass {
     constructor() {
         super();
-        this.bindClassMethods(['clientLoaded', 'mount', 'getMovie'], this);
+        this.bindClassMethods(['clientLoaded', 'mount', 'getMovie', 'addMovieToPage'], this);
         this.dataStore = new DataStore();
+        this.dataStore.addChangeListener(this.addMovieToPage);
         this.header = new Header(this.dataStore);
     }
 
@@ -28,10 +29,9 @@ class GetMovie extends BindingClass {
     async clientLoaded() {
         const identity = await this.client.getIdentity();
         const customerId = identity.email;
-        document.getElementById('movie').innerText = "Loading ...";
-        const movie = await this.client.getMovie(customerId)
-        this.dataStore.set('movie', movie);
-        this.addWorkoutsToPage();
+        document.getElementById('movies').innerText = "Loading ...";
+        const movie = await this.client.getMovie(customerId, console.log)
+        this.dataStore.set('movies', movie);
     }
 
     async getMovie(evt) {
@@ -60,12 +60,12 @@ class GetMovie extends BindingClass {
 
 
     addMovieToPage() {
-        const movie = this.dataStore.get('movie');
-        if (movie == null) {
+        const movies = this.dataStore.get('movies');
+        if (movies == null) {
             return;
         }
 
-        const movieList = document.getElementById('movie');
+        const movieList = document.getElementById('movies');
         movieList.innerHTML = '';
 
         let moviesHtml = '';
@@ -85,8 +85,8 @@ class GetMovie extends BindingClass {
                                </table>`
 
         // append each workout found, row by row to existing table
-        let movie;
-        for (movie of movies.movieModels) {
+
+        for (let movie of movies) {
             moviesHtml += `
                 <table id="movies">
                     <tr>

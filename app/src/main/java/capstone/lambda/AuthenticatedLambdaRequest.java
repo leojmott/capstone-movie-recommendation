@@ -34,10 +34,12 @@ public class AuthenticatedLambdaRequest<T> extends LambdaRequest<T> {
             throws JsonProcessingException {
         String jwt = getJWTFromAuthHeader(authorizationHeader);
         return getClaimsFromJWT(jwt);
+
     }
 
     private String getJWTFromAuthHeader(final String authorizationHeader) {
         return authorizationHeader.split("\\s")[1];
+
     }
 
     private Map<String, String> getClaimsFromJWT(final String jwt) throws JsonProcessingException {

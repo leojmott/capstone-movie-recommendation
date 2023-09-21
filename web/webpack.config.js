@@ -29,8 +29,8 @@ module.exports = {
     searchPlaylists: path.resolve(__dirname, 'src', 'pages', 'searchPlaylists.js'),
     getWorkoutHistory: path.resolve(__dirname, 'src', 'pages', 'getWorkoutHistory.js'),
     getWorkout: path.resolve(__dirname, 'src', 'pages', 'searchPlaylists.js'),
-    getType: path.resolve(__dirname, 'src', 'pages', 'searchPlaylists.js'),
-
+    getMovie: path.resolve(__dirname, 'src', 'pages', 'getMovie.js'),
+    addMovie: path.resolve(__dirname, 'src', 'pages', 'addMovie.js')
 
   },
   output: {

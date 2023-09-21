@@ -15,7 +15,7 @@ public class AddMovieLambda
                         AddMovieRequest unauthenticatedRequest = input.fromBody(AddMovieRequest.class);
                         return input.fromUserClaims(claims ->
                                 AddMovieRequest.builder()
-                                        .withId(unauthenticatedRequest.getId())
+                                        //.withId(unauthenticatedRequest.getId())
                                         .withTitle(unauthenticatedRequest.getTitle())
                                         .withDirector(unauthenticatedRequest.getDirector())
                                         .withReleaseYear(unauthenticatedRequest.getReleaseYear())
